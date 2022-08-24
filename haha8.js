@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MyKirito Achievement Stats
 // @namespace    https://github.com/JCxYIS/mykirito_achievement_stats
-// @version      1.0
+// @version      1.1
 // @description  祝你早日衝上成就榜
 // @author       JCxYIS
 // @match        https://mykirito.com/*
@@ -53,6 +53,7 @@
 
         // 目標 dict，key 為角色名，value 為 {win: Str, lose: Str, pt: Int}
         let dict = {}
+        let otherPt = 0 // 其他成就總計
 
 
         // 拿到所有成就
@@ -84,6 +85,7 @@
             else
             {
                 //console.log(achiStr + " " + achiPt)
+                otherPt += achiPt;
                 continue;
             }
         }
@@ -107,8 +109,8 @@
         /** 注入的元素 */
         // 表頭
         let tr = document.createElement('tr');
-        let arr = ["我的角色", "累積勝場", "累積敗場", "累積成就"];
-        for(let i = 0; i < 4; i++)
+        let arr = ["#", "我的角色", "累積勝場", "累積敗場", "累積成就"];
+        for(let i = 0; i < arr.length; i++)
         {
             let th = document.createElement('th');
             th.innerHTML = arr[i];
@@ -117,12 +119,23 @@
         table.appendChild(tr);
 
         // 表內容
-        for (const [key, value] of Object.entries(dict))
+        // 先換成 array 再 sort; array: [ (name, {win,lose,pt}) ]
+        let array = Object.keys(dict).map((key)=>[key, dict[key]]);
+        //console.log(array)
+        array.sort((a,b)=> b[1].pt - a[1].pt);
+
+        for(let i = 0; i < array.length; i++)
         {
+            let a = array[i];
+            let name = a[0];
+            let win = a[1].win
+            let lose = a[1].lose
+            let pt = a[1].pt
+
             //console.log(key, value);
             tr = document.createElement('tr');
-            let arr = [key, value["win"]??0, value["lose"]??0, value["pt"]];
-            for(let i = 0; i < 4; i++)
+            let arr = [i+1+". ", name, win??0, lose??0, pt];
+            for(let i = 0; i < arr.length; i++)
             {
                 let td = document.createElement('td');
                 td.innerHTML = arr[i];
