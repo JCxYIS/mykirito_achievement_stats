@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MyKirito Achievement Stats
 // @namespace    https://github.com/JCxYIS/mykirito_achievement_stats
-// @version      1.1
+// @version      1.2
 // @description  祝你早日衝上成就榜
 // @author       JCxYIS
 // @match        https://mykirito.com/*
@@ -53,11 +53,11 @@
 
         // 目標 dict，key 為角色名，value 為 {win: Str, lose: Str, pt: Int}
         let dict = {}
-        let otherPt = 0 // 其他成就總計
 
 
         // 拿到所有成就
         let achi = document.getElementsByTagName("tr");
+        let overrideChara = ""; // 同名角色複寫 (現只支援 2 個同名)
         for(let i = 0; i < achi.length; i++)
         {
             let achiStr = achi[i].children[1].innerHTML; // 成就名稱
@@ -70,22 +70,35 @@
             {
                 let chara = achiStr.substring(0, m.index); // 使用角色
                 let isWin = achiStr.indexOf("勝利") > -1; // 請支援輸贏！
-                let num = m[0].match("[0-9]+")[0]; // 場數
-                //console.log(`${chara} ${isWin?"勝":"敗"} ${num} pt=${achiPt}`);
+                let num = Number(m[0].match("[0-9]+")[0]); // 場數\
 
-                // add to dict
+                // add this to dict
                 let targetVal = dict[chara] ?? {win:null, lose:null, pt:0}; // {win, lose, pt}
-                if(isWin)
-                    targetVal["win"] = num;
+
+                // 判斷同名角
+                if(num <= targetVal[isWin?"win":"lose"]) // check existed key >= num, if true, that might me 同名角色 AKA 同素異構物
+                {
+                    overrideChara = chara;
+                    //console.log(`同名角色 ${chara} ${num} / ${targetVal[isWin?"win":"lose"]}`);
+                }
+                if(overrideChara === chara)
+                {
+                    chara = chara + "(新)";
+                }
                 else
-                    targetVal["lose"] = num;
+                {
+                    overrideChara = "";
+                }
+                targetVal = dict[chara] ?? {win:null, lose:null, pt:0}; // {win, lose, pt}
+
+                //console.log(`${chara} ${isWin?"勝":"敗"} ${num} pt=${achiPt}`);
+                targetVal[isWin?"win":"lose"] = num;
                 targetVal["pt"] += achiPt;
                 dict[chara] = targetVal;
             }
             else
             {
                 //console.log(achiStr + " " + achiPt)
-                otherPt += achiPt;
                 continue;
             }
         }
@@ -103,6 +116,8 @@
 
         let table = document.createElement('table');
         div.appendChild(table);
+
+        //div.appendChild(document.createTextNode('標有 (新) 的角色表示該角色有兩個型態，而 (新) 的是出現在成就榜第二個'))
 
         container.insertBefore(div, container.children[2]);
 
@@ -124,9 +139,11 @@
         //console.log(array)
         array.sort((a,b)=> b[1].pt - a[1].pt);
 
+        // 印表
         for(let i = 0; i < array.length; i++)
         {
             let a = array[i];
+
             let name = a[0];
             let win = a[1].win
             let lose = a[1].lose
